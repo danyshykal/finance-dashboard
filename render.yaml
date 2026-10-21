@@ -1,0 +1,20 @@
+# Render Blueprint for the API: https://render.com/docs/blueprint-spec
+# The database lives on Neon (free); the React app on Vercel.
+services:
+  - type: web
+    name: finance-dashboard-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste your Neon connection string when Render asks
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false # your Vercel address, e.g. https://finance-dashboard.vercel.app
