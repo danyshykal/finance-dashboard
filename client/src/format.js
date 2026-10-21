@@ -1,6 +1,6 @@
 // Change these two lines to use your own currency (e.g. 'MYR' + 'en-MY').
-const CURRENCY = 'USD';
-const LOCALE = 'en-US';
+const CURRENCY = 'MYR';
+const LOCALE = 'en-MY';
 
 const money = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: CURRENCY });
 const moneyCompact = new Intl.NumberFormat(LOCALE, {
