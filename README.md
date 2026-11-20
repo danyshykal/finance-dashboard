@@ -4,7 +4,7 @@ A personal finance dashboard for tracking income and expenses, with charts.
 
 **Stack:** React (Vite) · Node.js + Express · PostgreSQL · Chart.js
 
-🔗 **Live demo:** <https://finance-dashboard-three-smoky.vercel.app/> (log in with the demo account: **demo@example.com** / **demo1234**. The API is on a free tier, so the first load can take about 30 seconds.)
+ **Live demo:** <https://finance-dashboard-three-smoky.vercel.app/> (log in with the demo account: **demo@example.com** / **demo1234**. The API is on a free tier, so the first load can take about 30 seconds.)
 
 ![Dashboard](docs/screenshots/dashboard-light.png)
 
