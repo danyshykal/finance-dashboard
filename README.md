@@ -4,6 +4,8 @@ A personal finance dashboard for tracking income and expenses, with charts.
 
 **Stack:** React (Vite) · Node.js + Express · PostgreSQL · Chart.js
 
+🔗 **Live demo:** <https://finance-dashboard-three-smoky.vercel.app/> (log in with the demo account: **demo@example.com** / **demo1234**. The API is on a free tier, so the first load can take about 30 seconds.)
+
 ![Dashboard](docs/screenshots/dashboard-light.png)
 
 | Login | Dark mode | Mobile |
@@ -23,6 +25,51 @@ A personal finance dashboard for tracking income and expenses, with charts.
 - Light / dark mode switch (defaults to your system setting)
 - Pop-up confirmations for every change, responsive layout for phones
 - Each user only ever sees their own data
+
+## SQL analytics layer
+
+![SQL analytics output](docs/screenshots/sql-analytics.png)
+
+[`sql/analytics.sql`](sql/analytics.sql) adds reusable PostgreSQL analytics on top of the app's tables, without changing them:
+
+| Object | What it answers | PostgreSQL features |
+| --- | --- | --- |
+| `v_monthly_summary` | Income, spending, net and savings rate per month, with running balance, month-over-month change and a 3-month moving average | `generate_series` to fill empty months, window functions (`LAG`, running `SUM`, `AVG ... ROWS BETWEEN 2 PRECEDING`), named `WINDOW` |
+| `v_category_monthly` | Each category's spending per month, share of the month, rank, and change vs last month | `CROSS JOIN` grid so missing months count as 0, `RANK() OVER (PARTITION BY ...)` |
+| `v_category_trend` | Which categories grew or shrank: last 3 full months vs the 3 before | `FILTER` aggregates, excludes the unfinished current month |
+| `spending_report(user, from, to)` | A category breakdown for any date range | SQL function returning a table |
+| `mv_monthly_summary` | A cached copy of the monthly summary for fast dashboards | Materialized view, unique index, `REFRESH ... CONCURRENTLY` |
+
+Every view keeps `user_id`, so the API can filter by the logged-in user and data stays private.
+
+**Example** (demo account; the seed data is random, so your numbers will differ):
+
+```sql
+SELECT month, income, expense, savings_rate_pct, expense_change_pct, expense_3m_avg
+FROM v_monthly_summary
+WHERE user_id = (SELECT id FROM users WHERE email = 'demo@example.com')
+ORDER BY month;
+```
+
+| month | income | expense | savings_rate_pct | expense_change_pct | expense_3m_avg |
+| --- | --- | --- | --- | --- | --- |
+| 2026-06-01 | 5597.21 | 2794.77 | 50.1 | | 2794.77 |
+| 2026-07-01 | 4500.00 | 2549.91 | 43.3 | -8.8 | 2672.34 |
+| 2026-08-01 | 5227.21 | 2448.03 | 53.2 | -4.0 | 2597.57 |
+| 2026-09-01 | 4500.00 | 2515.97 | 44.1 | 2.8 | 2504.64 |
+| 2026-10-01 | 4500.00 | 2791.32 | 38.0 | 10.9 | 2585.11 |
+
+**Design decisions**
+- **Empty months count as 0.** Without `generate_series`, a month with no transactions would simply be missing, and "change vs last month" would silently compare against two months ago.
+- **The current month is flagged** (`is_current_month`) and left out of trends, because a half-finished month always looks like a drop in spending.
+- **Trend averages use only months with data**, so a user who joined two months ago isn't divided by three.
+- Tested against the seeded demo account plus a second user with a month of no transactions; view totals reconcile exactly with the raw `transactions` table.
+
+**Run it** (after `npm run db:init` and `npm run db:seed`):
+```bash
+psql -U postgres -d finance_dashboard -f sql/analytics.sql
+```
+Or open the file in pgAdmin's Query Tool and press F5. It's safe to re-run.
 
 ## Requirements
 
@@ -143,6 +190,7 @@ finance-dashboard/
 │       └── index.css       Styles
 ├── docs/screenshots/       Images used in this README
 ├── render.yaml             Render deployment settings for the API
+├── sql/analytics.sql       Analytics views, function and materialized view
 └── server/                 Express API
     └── src/
         ├── db/             Schema, connection pool, init and seed scripts
